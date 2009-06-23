@@ -1,0 +1,235 @@
+<?php
+
+// $Id: video_upload.install,v 1.6.2.1 2009/02/26 22:10:44 jhedstrom Exp $
+
+/**
+ * @file
+ * Install/Uninstall/Enable/Disable hooks
+ */
+
+// Updates happen in random order, whether or not the module is enabled,
+// so include critical code here just to be sure.
+include_once(drupal_get_path('module', 'content') .'/content.module');
+
+/**
+ * Implementation of hook_install().
+ */
+function video_upload_install() {
+  // Notify CCK.
+  drupal_load('module', 'content');
+  content_notify('install', 'video_upload');
+
+  drupal_install_schema('video_upload');
+
+  drupal_set_message(t('Video Upload successfully installed, and can be configured <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'))));
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function video_upload_schema() {
+  $schema = array();
+  $schema['video_upload'] = array(
+    'description' => t('Table to track meta-data for uploading data to 3rd party providers.'),
+    'fields' => array(
+      'fid' => array(
+        'description' => t('The file id.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'video_id' => array(
+        // The provider ID.
+        'type' => 'varchar',
+        'length' => '32',
+      ),
+      'video_status' => array(
+        // Video status
+        'type' => 'varchar',
+        'length' => 32,
+        'default' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
+        'sortable' => TRUE,
+        'not null' => TRUE,
+      ),
+      // Time of status update
+      'video_status_ts' => array(
+        'type' => 'int',
+        'length' => '11',
+        'sortable' => TRUE,
+        'default' => '0',
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+  return $schema;
+}
+
+/**
+ * Implementation of hook_enable().
+ */
+function video_upload_enable() {
+  // Notify CCK.
+  drupal_load('module', 'content');
+  content_notify('enable', 'video_upload');
+}
+
+/**
+ * Implementation of hook_disable().
+ */
+function video_upload_disable() {
+  // Notify CCK.
+  drupal_load('module', 'content');
+  content_notify('disable', 'video_upload');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function video_upload_uninstall() {
+  // Notify CCK.
+  drupal_load('module', 'content');
+  content_notify('uninstall', 'video_upload');
+
+  variable_del('video_upload_youtube_developer_key');
+  variable_del('video_upload_youtube_username');
+  variable_del('video_upload_youtube_password');
+
+  drupal_uninstall_schema('video_upload');
+}
+
+/**
+ * Implementation of hook_requirements().
+ *
+ * Checks for the existence required variable settings
+ */
+function video_upload_requirements($phase) {
+
+  $requirements = array();
+
+  // Ensure translations don't break at install time.
+  $t = get_t();
+
+  // Get GData-specific requirements.
+  // @todo: Once there is more than one provider, this can't be run at the
+  //        install phase.
+  include_once drupal_get_path('module', 'video_upload') . '/video_upload.module';
+  video_upload_initialize_provider();
+  $gdata_requirements = _video_upload_gdata_requirements($phase);
+
+  if ($phase == 'runtime') {
+
+    $username      = variable_get('video_upload_youtube_username', FALSE);
+    $password      = variable_get('video_upload_youtube_password', FALSE);
+    $developer_key = variable_get('video_upload_youtube_developer_key', FALSE);
+
+    // Must have certain settings to use.
+    if (!$username) {
+      $requirements['video_upload_username'] = array(
+        'title' => $t('Video Upload: Username'),
+        'value' => $t('Not Found'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The Video Upload module requires at least one YouTube username/password combo, which can be set <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'))),
+      );
+    }
+    if (!$password) {
+      $requirements['video_upload_password'] = array(
+        'title' => $t('Video Upload: Password'),
+        'value' => $t('Not Found'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The Video Upload module requires at least one YouTube username/password combo, which can be set <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'))),
+      );
+    }
+    if (!$developer_key) {
+      $requirements['video_upload_developer_key'] = array(
+        'title' => $t('Video Upload: YouTube Developer Key'),
+        'value' => $t('Not Found'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The Video Upload module requires a <a href="!devurl">YouTube Developer Key</a>, which can be set <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'), '!devurl' => url('http://code.google.com/apis/youtube/dashboard'))),
+      );
+    }
+
+    if ($username && $password && $developer_key && !_video_upload_authenticate_youtube()) {
+      // Failed to connect/authenticate.
+      $requirements['video_upload_authentication'] = array(
+        'title' => $t('Video Upload: YouTube Authentication'),
+        'value' => $t('Failed'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The Video Upload module has the required information, but was unable to authenticate to YouTube. There may be an error in one or more of the following: !list These settings can be reviewed <a href="!url">here</a>.', array('!list' => theme('item_list', array('username', 'password', 'developer key')), '!url' => url('admin/settings/video-upload'))),
+      );
+    }
+
+    if (empty($requirements) && empty($gdata_requirements)) {
+      $requirements['video_upload'] = array(
+        'title' => $t('Video Upload'),
+        'value' => $t('Properly configured'),
+        'severity' => REQUIREMENT_OK,
+      );
+    }
+  }
+
+  return array_merge($requirements, $gdata_requirements);
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function video_upload_update_6001() {
+  // Create video_upload table.
+  $ret = drupal_install_schema('video_upload');
+
+  // Need to move all non-FileField data into newly created video_upload table.
+  module_load_include('inc', 'content', 'includes/content.crud');
+
+  $fields = content_fields();
+  foreach ($fields as $field) {
+    if ($field['type'] == 'video_upload') {
+      $db_info = content_database_info($field);
+      if (isset($db_info['columns']['fid'])) {
+        $table = $db_info['table'];
+        // We're interested in id, status and status_ts. These need to be
+        // inserted into video_upload.
+        $fid_column = $db_info['columns']['fid']['column'];
+        $id_column = $db_info['columns']['id']['column'];
+        $status_column = $db_info['columns']['status']['column'];
+        $status_ts_column = $db_info['columns']['status_ts']['column'];
+        $ret[] = update_sql("INSERT INTO {video_upload} (fid, video_id video_status, video_status_ts) SELECT $fid_column, $id_column, $status_column, $status_ts_column FROM {" . $table . "} WHERE $fid_column IS NOT NULL");
+
+        // Remove fields.
+        db_drop_field($ret, $table, $id_column);
+        db_drop_field($ret, $table, $status_column);
+        db_drop_field($ret, $table, $status_ts_column);
+      }
+    }
+  }
+
+  // Convert old constants to new constants.
+  $results = db_query("SELECT * FROM {video_upload}");
+  while ($record = db_fetch_object($results)) {
+    _video_upload_update_map_old_constant($record->video_status);
+    drupal_write_record('video_upload', $record, 'fid');
+  }
+
+  // Now, convert all fields to filefield type.
+  $ret[] = update_sql("UPDATE {" . content_field_tablename() . "} SET type = 'filefield', module = 'filefield', active = 1 WHERE module = 'video_upload' OR type = 'video_upload'");
+  $ret[] = update_sql("UPDATE {" . content_instance_tablename() . "} SET widget_type = 'video_upload_widget', widget_module = 'video_upload', widget_active = 1 WHERE widget_type = 'video_upload' OR widget_type = 'video_upload'");
+  content_clear_type_cache();
+
+  return $ret;
+}
+
+/**
+ * Map old constants to more sensbile values.
+ */
+function _video_upload_update_map_old_constant(&$status) {
+  $old_mapping = array(
+    -3 => VIDEO_UPLOAD_STATUS_ORPHANED,
+    -2 => VIDEO_UPLOAD_STATUS_DELETE,
+    -1 => VIDEO_UPLOAD_STATUS_BAD,
+    0 => VIDEO_UPLOAD_STATUS_UNKNOWN,
+    1 => VIDEO_UPLOAD_STATUS_OK,
+    2 => VIDEO_UPLOAD_STATUS_OK_SYNCED,
+    3 => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
+  );
+
+  $status = $old_mapping[$status];
+}
