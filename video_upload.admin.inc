@@ -303,6 +303,7 @@ function _video_upload_upload_all($fields) {
   foreach ($fields as $field => $config) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UPLOAD_PENDING);
     while ($video = db_fetch_object($result)) {
+      $video->field = $config;
       if (video_upload_upload($config, $video)) {
         $uploaded ++;
       }
@@ -325,7 +326,7 @@ function _video_upload_verify_all($fields) {
   foreach ($fields as $field => $config) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UNKNOWN);
     while ($video = db_fetch_object($result)) {
-      $video->widget = $config['widget'];
+      $video->field = $config;
       $video_ids[] = $video->video_id;
       $videos[$video->video_id] = $video;
     }
@@ -391,7 +392,7 @@ function _video_upload_update_all_videos($fields) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_OK);
 
     while ($video = db_fetch_object($result)) {
-      $video->widget = $config['widget'];
+      $video->field = $config;
       $video_ids[] = $video->video_id;
       $videos[$video->video_id] = $video;
     }
@@ -482,9 +483,13 @@ function _video_upload_delete_rejected_videos($fields) {
  */
 function _video_upload_query_videos($config, $status) {
   $db_info = $config['database_information'];
+  $params[':video_id'] = $db_info['columns']['video_id']['column'];
   $params[':filefield'] = $db_info['columns']['fid']['column'];
+  $params[':video_status_field'] = $db_info['columns']['video_status']['column'];
+  $params[':video_status_field_2'] = $db_info['columns']['video_status']['column'];
   $params[':video_status'] = $status;
+  $params[':filefield_2'] = $db_info['columns']['fid']['column'];
   $multiple = $config['multiple'] ? ', delta' : '';
-  return db_query("SELECT v.video_id, nid, v.fid, v.video_status" . $multiple . " FROM {" . $db_info['table'] . "} t LEFT JOIN {video_upload} v ON t.%s = v.fid WHERE v.video_status = '%s' AND v.fid IS NOT NULL", $params);
+  return db_query("SELECT %s AS video_id, nid, %s AS fid, %s AS video_status" . $multiple . " FROM {" . $db_info['table'] . "} t WHERE %s = '%s' AND %s IS NOT NULL", $params);
 }
   

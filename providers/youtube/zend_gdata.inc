@@ -203,7 +203,7 @@ function _video_upload_gdata_construct_media_group(&$yt, &$video, $node, $field)
   $mediaGroup->category = array_merge(array($yt_category), $yt_dev_tags);
 
   // Set the public tags.
-  $yt_keywords = _video_upload_get_video_keywords($node, $field);
+  $yt_keywords = _video_upload_get_video_keywords($node, $field['widget']);
   $mediaGroup->keywords = $yt->newMediaKeywords()->setText($yt_keywords);
     
   $video->mediaGroup = $mediaGroup;

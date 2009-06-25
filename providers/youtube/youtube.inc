@@ -223,7 +223,7 @@ function _video_upload_get_video_keywords($node, $widget) {
  */
 function _video_upload_update_video_remote($yt, $video, &$local_video, &$node) {
   $update = FALSE;
-  $widget = $local_video->widget;
+  $widget = $local_video->field['widget'];
 
   $title = _video_upload_set_default_title($node, $widget);
   if ($video->getVideoTitle() != $title) {

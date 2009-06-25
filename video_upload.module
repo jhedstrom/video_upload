@@ -569,11 +569,12 @@ function video_upload_get_all_statuses() {
  * Update a video upload record.
  */
 function _video_upload_update_video($video) {
-  $video->video_status_ts = $_SERVER['REQUEST_TIME'];
-  $result = drupal_write_record('video_upload', $video, 'fid');
-  // Clear content cache.
+  $node = node_load($video->nid);
+  $field = $video->field;
+  $field_name = $video->field['field_name'];
   $delta = isset($video->delta) ? $video->delta : 1;
-  $cid = 'content:' . $video->nid . ':' . $delta;
-  cache_clear_all($cid, 'cache_content');
-  return $result;
+  $node->{$field_name}[$delta - 1]['video_status_ts'] = $_SERVER['REQUEST_TIME'];
+  $node->{$field_name}[$delta - 1]['video_status'] = $video->video_status;
+  $node->{$field_name}[$delta - 1]['video_id'] = $video->video_id;
+  node_save($node);
 }

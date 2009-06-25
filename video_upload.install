@@ -148,6 +148,7 @@ function video_upload_update_6001() {
         // Change type to varchar(32).
         $status_schema['type'] = 'varchar';
         $status_schema['length'] = 32;
+        $status_schema['default'] = VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
         $new_status_column = preg_replace('/(_status)$/', '_video_status', $status_column);
         db_change_field($ret, $table, $status_column, $new_status_column, $status_schema);
 
@@ -159,6 +160,20 @@ function video_upload_update_6001() {
         foreach (_video_upload_update_6001_map_old_constants() as $old_status => $new_status) {
           $ret[] = update_sql("UPDATE {" . $table . "} SET " . $new_status_column . " = '" . $new_status . "' WHERE " . $new_status_column . " = " . $old_status);
         }
+
+        // Update CCK field definition.
+        $new_columns = $field['columns'];
+        foreach (array('id', 'status', 'status_ts') as $column) {
+          $new_columns['video_' . $column] = $new_columns[$column];
+          unset($new_columns[$column]);
+        }
+        $new_columns['video_status'] = $status_schema;
+        // Update table directly since CCK doesn't yet know that the
+        // module is filefield instead of video upload.
+        $record = new stdClass;
+        $record->db_columns = $new_columns;
+        $record->field_name = $field['field_name'];
+        drupal_write_record(content_field_tablename(), $record, 'field_name');
       }
     }
   }
@@ -166,7 +181,9 @@ function video_upload_update_6001() {
   // Now, convert all fields to filefield type.
   $ret[] = update_sql("UPDATE {" . content_field_tablename() . "} SET type = 'filefield', module = 'filefield', active = 1 WHERE module = 'video_upload' OR type = 'video_upload'");
   $ret[] = update_sql("UPDATE {" . content_instance_tablename() . "} SET widget_type = 'video_upload_widget', widget_module = 'video_upload', widget_active = 1 WHERE widget_type = 'video_upload' OR widget_type = 'video_upload'");
-  content_clear_type_cache();
+
+  // Force a rebuild of CCK's type cache.
+  content_clear_type_cache(TRUE);
 
   return $ret;
 }
