@@ -15,7 +15,7 @@ function video_upload_views_handlers() {
       'path' => drupal_get_path('module', 'video_upload') . '/views',
     ),
     'handlers' => array(
-      // filter handlers
+      // Filter handlers.
       'views_handler_filter_video_upload_status' => array(
         'parent' => 'views_handler_filter_in_operator',
       ),

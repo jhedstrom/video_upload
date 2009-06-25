@@ -18,50 +18,7 @@ function video_upload_install() {
   // Notify CCK.
   drupal_load('module', 'content');
   content_notify('install', 'video_upload');
-
-  drupal_install_schema('video_upload');
-
   drupal_set_message(t('Video Upload successfully installed, and can be configured <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'))));
-}
-
-/**
- * Implementation of hook_schema().
- */
-function video_upload_schema() {
-  $schema = array();
-  $schema['video_upload'] = array(
-    'description' => t('Table to track meta-data for uploading data to 3rd party providers.'),
-    'fields' => array(
-      'fid' => array(
-        'description' => t('The file id.'),
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ),
-      'video_id' => array(
-        // The provider ID.
-        'type' => 'varchar',
-        'length' => '32',
-      ),
-      'video_status' => array(
-        // Video status
-        'type' => 'varchar',
-        'length' => 32,
-        'default' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
-        'sortable' => TRUE,
-        'not null' => TRUE,
-      ),
-      // Time of status update
-      'video_status_ts' => array(
-        'type' => 'int',
-        'length' => '11',
-        'sortable' => TRUE,
-        'default' => '0',
-      ),
-    ),
-    'primary key' => array('fid'),
-  );
-  return $schema;
 }
 
 /**
@@ -93,8 +50,6 @@ function video_upload_uninstall() {
   variable_del('video_upload_youtube_developer_key');
   variable_del('video_upload_youtube_username');
   variable_del('video_upload_youtube_password');
-
-  drupal_uninstall_schema('video_upload');
 }
 
 /**
@@ -174,10 +129,7 @@ function video_upload_requirements($phase) {
  * Implementation of hook_update_N().
  */
 function video_upload_update_6001() {
-  // Create video_upload table.
-  $ret = drupal_install_schema('video_upload');
-
-  // Need to move all non-FileField data into newly created video_upload table.
+  // Prefix "video_" onto status, status_ts and id column names.
   module_load_include('inc', 'content', 'includes/content.crud');
 
   $fields = content_fields();
@@ -186,27 +138,29 @@ function video_upload_update_6001() {
       $db_info = content_database_info($field);
       if (isset($db_info['columns']['fid'])) {
         $table = $db_info['table'];
-        // We're interested in id, status and status_ts. These need to be
-        // inserted into video_upload.
-        $fid_column = $db_info['columns']['fid']['column'];
+        // We're interested in id, status and status_ts.
         $id_column = $db_info['columns']['id']['column'];
-        $status_column = $db_info['columns']['status']['column'];
-        $status_ts_column = $db_info['columns']['status_ts']['column'];
-        $ret[] = update_sql("INSERT INTO {video_upload} (fid, video_id video_status, video_status_ts) SELECT $fid_column, $id_column, $status_column, $status_ts_column FROM {" . $table . "} WHERE $fid_column IS NOT NULL");
+        $id_schema = $db_info['columns']['id'];
+        db_change_field($ret, $table, $id_column, preg_replace('/(_id)$/', '_video_id', $id_column), $id_schema);
 
-        // Remove fields.
-        db_drop_field($ret, $table, $id_column);
-        db_drop_field($ret, $table, $status_column);
-        db_drop_field($ret, $table, $status_ts_column);
+        $status_column = $db_info['columns']['status']['column'];
+        $status_schema = $db_info['columns']['status'];
+        // Change type to varchar(32).
+        $status_schema['type'] = 'varchar';
+        $status_schema['length'] = 32;
+        $new_status_column = preg_replace('/(_status)$/', '_video_status', $status_column);
+        db_change_field($ret, $table, $status_column, $new_status_column, $status_schema);
+
+        $status_ts_column = $db_info['columns']['status_ts']['column'];
+        $status_ts_schema = $db_info['columns']['status_ts'];
+        db_change_field($ret, $table, $status_ts_column, preg_replace('/(_status_ts)$/', '_video_status_ts', $status_ts_column), $status_ts_schema);
+
+        // Update to new constants.
+        foreach (_video_upload_update_6001_map_old_constants() as $old_status => $new_status) {
+          $ret[] = update_sql("UPDATE {" . $table . "} SET " . $new_status_column . " = '" . $new_status . "' WHERE " . $new_status_column . " = " . $old_status);
+        }
       }
     }
-  }
-
-  // Convert old constants to new constants.
-  $results = db_query("SELECT * FROM {video_upload}");
-  while ($record = db_fetch_object($results)) {
-    _video_upload_update_map_old_constant($record->video_status);
-    drupal_write_record('video_upload', $record, 'fid');
   }
 
   // Now, convert all fields to filefield type.
@@ -220,8 +174,8 @@ function video_upload_update_6001() {
 /**
  * Map old constants to more sensbile values.
  */
-function _video_upload_update_map_old_constant(&$status) {
-  $old_mapping = array(
+function _video_upload_update_6001_map_old_constants() {
+  return array(
     -3 => VIDEO_UPLOAD_STATUS_ORPHANED,
     -2 => VIDEO_UPLOAD_STATUS_DELETE,
     -1 => VIDEO_UPLOAD_STATUS_BAD,
@@ -230,6 +184,4 @@ function _video_upload_update_map_old_constant(&$status) {
     2 => VIDEO_UPLOAD_STATUS_OK_SYNCED,
     3 => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
   );
-
-  $status = $old_mapping[$status];
 }

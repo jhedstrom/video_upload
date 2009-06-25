@@ -32,7 +32,8 @@ define('VIDEO_UPLOAD_SYNC_APPEND', 2);
  */
 function video_upload_init() {
   module_load_include('inc', 'video_upload', 'video_upload_widget');
-  module_load_include('inc', 'video_upload', 'video_upload_file');
+// @todo remove me
+//  module_load_include('inc', 'video_upload', 'video_upload_file');
 }
 
 /**
@@ -386,6 +387,55 @@ function video_upload_views_api() {
     'api' => 2,
     'path' => drupal_get_path('module', 'video_upload') . '/views',
   );
+}
+
+/**
+ * Implementation of hook_field_settings_alter().
+ *
+ * For any fields using the video upload widget:
+ * - Adds required database columns.
+ * - Defines views data.
+ */
+function video_upload_field_settings_alter(&$data, $op, $field) {
+  if (!isset($field['widget']) || $field['widget']['type'] != 'video_upload_widget') {
+    return;
+  }
+  switch ($op) {
+    case 'database columns':
+      $data += array(
+        // The provider ID.
+        'video_id' => array(
+          'type' => 'varchar',
+          'length' => 32,
+          'views' => TRUE,
+        ),
+        // Video status.
+        'video_status' => array(
+          'type' => 'varchar',
+          'length' => 32,
+          'default' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
+          'sortable' => TRUE,
+          'views' => TRUE,
+        ),
+        // Time of status update.
+        'video_status_ts' => array(
+          'type' => 'int',
+          'length' => 11,
+          'sortable' => TRUE,
+          'default' => '0',
+          'views' => TRUE,
+        ),
+      );
+      break;
+
+    case 'views data':
+      dpm($field);
+      $table_alias = content_views_tablename($field);
+      $field_name = $field['field_name'];
+      $data[$table_alias][$field_name . '_video_status']['filter']['handler'] = 'views_handler_filter_video_upload_status';
+      $data[$table_alias][$field_name . '_video_status_ts']['filter']['handler'] = 'views_handler_filter_date';
+      break;
+  }
 }
 
 /**
