@@ -13,7 +13,7 @@ function _video_upload_relevant_fields() {
   $fields = content_fields();
   $video_upload_fields = array();
   foreach ($fields as $field => $config) {
-    if (($config['type'] == 'filefield') && ($config['widget']['type'] == 'video_upload_widget')) {
+    if (($config['type'] == 'video_upload') && ($config['widget']['type'] == 'video_upload_widget')) {
       $video_upload_fields[$field] = $config;
       $video_upload_fields[$field]['database_information'] = content_database_info($config);
     }

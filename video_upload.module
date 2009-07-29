@@ -32,8 +32,6 @@ define('VIDEO_UPLOAD_SYNC_APPEND', 2);
  */
 function video_upload_init() {
   module_load_include('inc', 'video_upload', 'video_upload_widget');
-// @todo remove me
-//  module_load_include('inc', 'video_upload', 'video_upload_file');
 }
 
 /**
@@ -165,13 +163,78 @@ function video_upload_elements() {
 }
 
 /**
+ * Implementation of CCK's hook_field_info().
+ */
+function video_upload_field_info() {
+  return array(
+    'video_upload' => array(
+      'label' => 'Video Upload',
+      'description' => t('Upload and send video to a 3rd-party provider.'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_settings().
+ */
+function video_upload_field_settings($op, $field) {
+  // Use FileField as a starting point, modify below depending on the operation.
+  $return = filefield_field_settings($op, $field);
+  switch ($op) {
+    case 'database columns':
+      $return += array(
+        // The provider ID.
+        'video_id' => array(
+          'type' => 'varchar',
+          'length' => 32,
+          'views' => TRUE,
+        ),
+        // Video status.
+        'video_status' => array(
+          'type' => 'varchar',
+          'length' => 32,
+          'default' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
+          'sortable' => TRUE,
+          'views' => TRUE,
+        ),
+        // Time of status update.
+        'video_status_ts' => array(
+          'type' => 'int',
+          'length' => 11,
+          'sortable' => TRUE,
+          'default' => '0',
+          'views' => TRUE,
+        ),
+      );
+      break;
+
+    case 'views data':
+      $table_alias = content_views_tablename($field);
+      $field_name = $field['field_name'];
+      $return[$table_alias][$field_name . '_video_status']['filter']['handler'] = 'views_handler_filter_video_upload_status';
+      $return[$table_alias][$field_name . '_video_status_ts']['filter']['handler'] = 'views_handler_filter_date';
+      break;
+  }
+  return $return;
+}
+
+/**
+ * Implementation of CCK's hook_field().
+ */
+function video_upload_field($op, $node, $field, &$items, $teaser, $page) {
+  // Nothing different from FileField, so simply do what FileField does.
+  $return = filefield_field($op, $node, $field, &$items, $teaser, $page);
+  return $return;
+}
+
+/**
  * Implementation of hook_widget_info().
  */
 function video_upload_widget_info() {
   return array(
     'video_upload_widget' => array(
       'label' => t('Upload/Edit/Display Video'),
-      'field types' => array('filefield'),
+      'field types' => array('video_upload'),
       'multiple values' => CONTENT_HANDLE_CORE,
       'callbacks' => array(
         'default value' => CONTENT_CALLBACK_CUSTOM,
@@ -221,28 +284,36 @@ function video_upload_widget(&$form, &$form_state, $field, $items, $delta = 0) {
 }
 
 /**
+ * Implementation of CCK's hook_content_is_empty().
+ */
+function video_upload_content_is_empty($item, $field) {
+  // Use FileField's definition of empty.
+  return filefield_content_is_empty($item, $field);
+}
+
+/**
  * Implementation of hook_formatter_info().
  */
 function video_upload_field_formatter_info() {
   return array(
     'default' => array(
       'label' => t('Default'),
-      'field types' => array('filefield'),
+      'field types' => array('video_upload'),
       'description' => t('Displays fullsize video as defined in the field settings.'),
     ),
     'thumb' => array(
       'label' => t('Thumbnail image'),
-      'field types' => array('filefield'),
+      'field types' => array('video_upload'),
       'description' => t('Image thumbnail of the dimensions defined in the field settings.'),
     ),
     'thumb_link' => array(
       'label' => t('Thumbnail image as link to node'),
-      'field types' => array('filefield'),
+      'field types' => array('video_upload'),
       'description' => t('Thumbnail image linking to video node.'),
     ),
     'small' => array(
       'label' => t('Small Video'),
-      'field types' => array('filefield'),
+      'field types' => array('video_upload'),
       'description' => t('Small video as defined in the field settings.'),
     ),
   );

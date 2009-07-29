@@ -127,9 +127,11 @@ function video_upload_requirements($phase) {
 
 /**
  * Implementation of hook_update_N().
+ *
+ * - Prefix "video_" onto status, status_ts and id column names.
+ * - Updates constants to simple text values rather than ambigous integers.
  */
 function video_upload_update_6001() {
-  // Prefix "video_" onto status, status_ts and id column names.
   module_load_include('inc', 'content', 'includes/content.crud');
 
   $fields = content_fields();
@@ -177,10 +179,6 @@ function video_upload_update_6001() {
       }
     }
   }
-
-  // Now, convert all fields to filefield type.
-  $ret[] = update_sql("UPDATE {" . content_field_tablename() . "} SET type = 'filefield', module = 'filefield', active = 1 WHERE module = 'video_upload' OR type = 'video_upload'");
-  $ret[] = update_sql("UPDATE {" . content_instance_tablename() . "} SET widget_type = 'video_upload_widget', widget_module = 'video_upload', widget_active = 1 WHERE widget_type = 'video_upload' OR widget_type = 'video_upload'");
 
   // Force a rebuild of CCK's type cache.
   content_clear_type_cache(TRUE);
