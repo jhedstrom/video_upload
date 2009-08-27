@@ -143,7 +143,7 @@ function video_upload_admin_video_form() {
   foreach ($fields as $field => $config) {
     $db_info = $config['database_information'];
     $where = array();
-    $video_id_field = $db_info['columns']['id']['column'];
+    $video_id_field = $db_info['columns']['video_id']['column'];
     $result = db_query("SELECT %s AS id, nid FROM {" . $db_info['table'] . "}", $video_id_field);
     while ($id = db_fetch_object($result)) {
       // add field_name

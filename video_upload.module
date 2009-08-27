@@ -211,8 +211,18 @@ function video_upload_field_settings($op, $field) {
     case 'views data':
       $table_alias = content_views_tablename($field);
       $field_name = $field['field_name'];
+      // Unset FileField data element
+      unset($return[$table_alias][$field_name . '_data']);
+
+      // Video status.
+      $return[$table_alias][$field_name . '_video_status']['title'] = t('(@field) Video Upload Status', array('@field' => $field_name));
       $return[$table_alias][$field_name . '_video_status']['filter']['handler'] = 'views_handler_filter_video_upload_status';
+      $return[$table_alias][$field_name . '_video_status']['field']['handler'] = 'views_handler_field';
+
+      // Video status timestamp.
+      $return[$table_alias][$field_name . '_video_status_ts']['title'] = t('(@field) Video Upload Status Timestamp', array('@field' => $field_name));
       $return[$table_alias][$field_name . '_video_status_ts']['filter']['handler'] = 'views_handler_filter_date';
+      $return[$table_alias][$field_name . '_video_status_ts']['field']['handler'] = 'views_handler_field_date';
       break;
   }
   return $return;
