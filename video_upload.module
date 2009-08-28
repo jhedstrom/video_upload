@@ -658,4 +658,5 @@ function _video_upload_update_video($video) {
   $node->{$field_name}[$delta - 1]['video_status'] = $video->video_status;
   $node->{$field_name}[$delta - 1]['video_id'] = $video->video_id;
   node_save($node);
+  return $video->video_id;
 }

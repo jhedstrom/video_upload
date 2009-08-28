@@ -116,11 +116,6 @@ class videoUploadYouTubeTests extends DrupalWebTestCase {
       $this->assertEqual($old_node->{$this->video_field_name}[0][$key], $new_node->{$this->video_field_name}[0][$key], t('%var has not changed after editing a non-related part of the node.', array('%var' => $key)));
     }
 
-    // Delete node and video from YouTube.
-    $this->drupalPost('node/' . $node->nid . '/delete', array(), t('Delete'));
-    $this->drupalGet('admin/content/video-upload');
-    $this->assertNoText($id, t('Video has been removed from the video admin screen after the node is deleted.', array('%id' => $id)));
-
     // Test various taxonomies.
     $node = $this->postVideoUploadNode();
 
@@ -152,7 +147,7 @@ class videoUploadYouTubeTests extends DrupalWebTestCase {
       'field_name' => $this->video_field_name,
       'type_name' => $this->video_type,
       'label' => $this->randomName(),
-      'type' => 'filefield',
+      'type' => 'video_upload',
       'widget_type' => 'video_upload_widget',
       'change' => 'Change basic information',
       'weight' => '1',

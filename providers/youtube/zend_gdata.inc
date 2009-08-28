@@ -178,11 +178,11 @@ function _video_upload_gdata_construct_media_group(&$yt, &$video, $node, $field)
   $mediaGroup = $yt->newMediaGroup();
 
   // Set the title.
-  $yt_title = _video_upload_set_default_title($node, $field);
+  $yt_title = _video_upload_set_default_title($node, $field['widget']);
   $mediaGroup->title = $yt->newMediaTitle()->setText($yt_title);
 
   // Set the description.
-  $yt_description = _video_upload_set_default_description($node, $field);
+  $yt_description = _video_upload_set_default_description($node, $field['widget']);
   $mediaGroup->description = $yt->newMediaDescription()->setText($yt_description);
 
   // Set the video category.
@@ -194,7 +194,7 @@ function _video_upload_gdata_construct_media_group(&$yt, &$video, $node, $field)
   $yt_category = $yt->newMediaCategory()->setText($_yt_category)->setScheme(VIDEO_UPLOAD_GDATA_CATEGORIES_SCHEME);
 
   // Set the developer tags.
-  $_yt_dev_tags = _video_upload_set_developer_tags($node, $field);
+  $_yt_dev_tags = _video_upload_set_developer_tags($node, $field['widget']);
   foreach ($_yt_dev_tags as $dev_tag) {
     $yt_dev_tags[] = $yt->newMediaCategory()->setText($dev_tag)->setScheme(VIDEO_UPLOAD_GDATA_DEVELOPER_TAG_SCHEME);
   }

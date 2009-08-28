@@ -300,12 +300,12 @@ function _video_upload_widget_validate_strip_tags($element, &$form_state) {
 function video_upload_widget_value($element, $edit = FALSE) {
   $item = filefield_widget_value($element, $edit);
   if ($edit) {
-    $item['status'] = isset($edit['status']) ? $edit['status'] : VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
-    $item['status_ts'] = isset($edit['status_ts']) ? $edit['status_ts'] : $_SERVER['REQUEST_TIME'];
+    $item['video_status'] = isset($edit['video_status']) ? $edit['video_status'] : VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
+    $item['video_status_ts'] = isset($edit['video_status_ts']) ? $edit['video_status_ts'] : $_SERVER['REQUEST_TIME'];
   }
   else {
-    $item['status'] = VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
-    $item['status_ts'] = $_SERVER['REQUEST_TIME'];
+    $item['video_status'] = VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
+    $item['video_status_ts'] = $_SERVER['REQUEST_TIME'];
   }
 
   return $item;
@@ -316,17 +316,17 @@ function video_upload_widget_process($element, $edit, &$form_state, $form) {
 
   $field = content_fields($element['#field_name'], $element['#type_name']);
 
-  $element['status'] = array(
+  $element['video_status'] = array(
     '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['status'],
+    '#default_value' => $element['#default_value']['video_status'],
   );
-  $element['status_ts'] = array(
+  $element['video_status_ts'] = array(
     '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['status_ts'],
+    '#default_value' => $element['#default_value']['video_status_ts'],
   );
-  $element['id'] = array(
+  $element['video_id'] = array(
     '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['id'],
+    '#default_value' => $element['#default_value']['video_id'],
   );
 
   return $element;
@@ -349,7 +349,7 @@ function theme_video_upload_widget(&$element) {
 }
 
 function theme_video_upload_widget_preview($item = NULL) {
-  $message = theme('video_upload_status_text', $item['status']);
+  $message = theme('video_upload_status_text', $item['video_status']);
   return '<div class="messages">' . $message . '</div>' . theme('video_upload_video', $items['id']);
 }
 
