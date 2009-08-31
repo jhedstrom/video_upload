@@ -233,7 +233,7 @@ function video_upload_field_settings($op, $field) {
  */
 function video_upload_field($op, $node, $field, &$items, $teaser, $page) {
   // Nothing different from FileField, so simply do what FileField does.
-  $return = filefield_field($op, $node, $field, &$items, $teaser, $page);
+  $return = filefield_field($op, $node, $field, $items, $teaser, $page);
   return $return;
 }
 
