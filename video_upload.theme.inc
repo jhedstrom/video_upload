@@ -122,7 +122,7 @@ function theme_video_upload_video_thumb($field, $item, $nid, $as_link = FALSE) {
 
     // @todo: Abstract out YouTube.
     video_upload_initialize_provider();
-    $attributes['src'] = VIDEO_UPLOAD_YOUTUBE_THUMB_URL . '/' . $item['id'] . '/1.jpg' . $flag;
+    $attributes['src'] = VIDEO_UPLOAD_YOUTUBE_THUMB_URL . '/' . $item['video_id'] . '/1.jpg' . $flag;
     $attributes['alt'] = t('YouTube Thumbnail');
   }
 
