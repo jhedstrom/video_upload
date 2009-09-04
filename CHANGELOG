@@ -1,5 +1,13 @@
 $Id: CHANGELOG,v 1.5.2.6 2009/05/19 01:44:26 jhedstrom Exp $
 
+DRUPAL-6--1-5, XXXX-XX-XX
+-------------------------
+- #566740, fixed file referencing validation error.
+
+DRUPAL-6--1-4, 2009-09-03
+-------------------------
+- Removed erroneously committed debugging code.
+
 DRUPAL-6--1-3, 2009-08-27
 -------------------------
 - Updated to match the new FileField API.

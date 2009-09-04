@@ -332,7 +332,32 @@ function video_upload_widget_process($element, $edit, &$form_state, $form) {
   return $element;
 }
 
-function video_upload_widget_validate($element) {
+/**
+ * An #element_validate callback for the video_upload_widget field.
+ *
+ * This is mostly a copy of FileField's widget validate callback.
+ */
+function video_upload_widget_validate(&$element, &$form_state) {
+  // If referencing an existing file, only allow if there are existing
+  // references. This prevents unmanaged files (outside of FileField) from
+  // being deleted if this node were to be deleted.
+  if (!empty($element['fid']['#value'])) {
+    $field = content_fields($element['#field_name'], $element['#type_name']);
+    if ($file = field_file_load($element['fid']['#value'])) {
+      $file = (object) $file;
+      if ($file->status == FILE_STATUS_PERMANENT) {
+        // TODO: We could use field_file_references() here to reference any file
+        // but hook_file_delete() needs to be implemented first.
+        $references = module_invoke('video_upload', 'file_references', $file);
+        if ($references['video_upload'] == 0) {
+          form_error($element, t('Referencing to the file used in the %field field is not allowed.', array('%field' => $element['#title'])));
+        }
+      }
+    }
+    else {
+      form_error($element, t('The file referenced by the %field field does not exist.', array('%field' => $element['#title'])));
+    }
+  }
 }
 
 /**

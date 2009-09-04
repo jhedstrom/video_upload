@@ -151,6 +151,11 @@ function video_upload_elements() {
 
   // Uses filefield as a starting point, and adds additional processing.
   $filefield_elements = filefield_elements();
+
+  // Unset FileField's validate callback since it will fail to
+  // validate as FileField knows nothing of this file.
+  $filefield_elements['filefield_widget']['#element_validate'] = array();
+
   $elements['video_upload_widget'] = $filefield_elements['filefield_widget'];
   $elements['video_upload_widget']['#process'][] = 'video_upload_widget_process';
   $elements['video_upload_widget']['#element_validate'][] = 'video_upload_widget_validate';
@@ -160,6 +165,92 @@ function video_upload_elements() {
   $elements['video_upload_widget']['#value_callback'] = 'video_upload_widget_value';
 
   return $elements;
+}
+
+/**
+ * Implementation of hook_file_references().
+ */
+function video_upload_file_references($file) {
+  $count = video_upload_get_file_reference_count($file);
+  return $count ? array('video_upload' => $count) : NULL;
+}
+
+/**
+ * Count the number of times the file is referenced within a field.
+ *
+ * @param $file
+ *   A file object.
+ * @param $field
+ *   Optional. The CCK field array or field name as a string.
+ * @return
+ *   An integer value.
+ */
+function video_upload_get_file_reference_count($file, $field = NULL) {
+  $fields = video_upload_get_field_list(NULL, $field);
+  $file = (object) $file;
+
+  $references = 0;
+  foreach ($fields as $field) {
+    $db_info = content_database_info($field);
+    $references += db_result(db_query(
+      'SELECT count('. $db_info['columns']['fid']['column'] .')
+        FROM {'. $db_info['table'] .'}
+        WHERE '. $db_info['columns']['fid']['column'] .' = %d', $file->fid
+    ));
+
+    // If a field_name is present in the file object, the file is being deleted
+    // from this field.
+    if (isset($file->field_name) && $field['field_name'] == $file->field_name) {
+      // If deleting the entire node, count how many references to decrement.
+      if (isset($file->delete_nid)) {
+        $node_references = db_result(db_query(
+          'SELECT count('. $db_info['columns']['fid']['column'] .')
+            FROM {'. $db_info['table'] .'}
+            WHERE '. $db_info['columns']['fid']['column'] .' = %d AND nid = %d', $file->fid, $file->delete_nid
+        ));
+        $references = $references - $node_references;
+      }
+      else {
+        $references = $references - 1;
+      }
+    }
+  }
+
+  return $references;
+}
+
+/**
+ * Return an array of file fields within a node type or by field name.
+ *
+ * @param $field
+ *   Optional. May be either a field array or a field name.
+ * @param $node_type
+ *   Optional. The node type to filter the list of fields.
+ */
+function video_upload_get_field_list($node_type = NULL, $field = NULL) {
+  // Build the list of fields to be used for retrieval.
+  if (isset($field)) {
+    if (is_string($field)) {
+      $field = content_fields($field, $node_type);
+    }
+    $fields = array($field['field_name'] => $field);
+  }
+  elseif (isset($node_type)) {
+    $type = content_types($node_type);
+    $fields = $type['fields'];
+  }
+  else {
+    $fields = content_fields();
+  }
+
+  // Filter down the list just to file fields.
+  foreach ($fields as $key => $field) {
+    if ($field['type'] != 'video_upload') {
+      unset($fields[$key]);
+    }
+  }
+
+  return $fields;
 }
 
 /**
