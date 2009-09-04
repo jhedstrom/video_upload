@@ -510,7 +510,6 @@ function video_upload_field_settings_alter(&$data, $op, $field) {
       break;
 
     case 'views data':
-      dpm($field);
       $table_alias = content_views_tablename($field);
       $field_name = $field['field_name'];
       $data[$table_alias][$field_name . '_video_status']['filter']['handler'] = 'views_handler_filter_video_upload_status';
