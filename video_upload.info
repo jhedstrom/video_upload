@@ -1,8 +1,11 @@
 ; $Id: video_upload.info,v 1.5 2008/10/10 19:02:57 jhedstrom Exp $
 name = Video Upload Field
 description = Upload video to YouTube
-core = 6.x
+core = 7.x
 package = CCK
-php = 5.1
-dependencies[] = content
-dependencies[] = filefield
+dependencies[] = file
+files[] = video_upload.module
+files[] = video_upload.field.inc
+files[] = video_upload.install
+files[] = video_upload.widget.inc
+files[] = video_upload.admin.inc

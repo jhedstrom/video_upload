@@ -1,6 +1,10 @@
-$Id: CHANGELOG,v 1.5.2.6 2009/05/19 01:44:26 jhedstrom Exp $
+$Id: CHANGELOG,v 1.5.2.11 2009/10/10 18:11:17 jhedstrom Exp $
 
-DRUPAL-6--1-5, XXXX-XX-XX
+DRUPAL-7--1-5, XXXX-XX-XX
+-------------------------
+- Initial Drupal 7 release.
+
+DRUPAL-6--1-5, 2009-10-10 
 -------------------------
 - #566740, fixed file referencing validation error.
 

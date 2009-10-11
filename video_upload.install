@@ -1,59 +1,30 @@
 <?php
 
-// $Id: video_upload.install,v 1.6.2.1 2009/02/26 22:10:44 jhedstrom Exp $
+// $Id: video_upload.install,v 1.6.2.5 2009/09/04 20:51:16 jhedstrom Exp $
 
 /**
  * @file
  * Install/Uninstall/Enable/Disable hooks
  */
 
-// Updates happen in random order, whether or not the module is enabled,
-// so include critical code here just to be sure.
-include_once(drupal_get_path('module', 'content') .'/content.module');
-
 /**
- * Implementation of hook_install().
+ * Implement hook_install().
  */
 function video_upload_install() {
-  // Notify CCK.
-  drupal_load('module', 'content');
-  content_notify('install', 'video_upload');
   drupal_set_message(t('Video Upload successfully installed, and can be configured <a href="!url">here</a>.', array('!url' => url('admin/settings/video-upload'))));
 }
 
 /**
- * Implementation of hook_enable().
- */
-function video_upload_enable() {
-  // Notify CCK.
-  drupal_load('module', 'content');
-  content_notify('enable', 'video_upload');
-}
-
-/**
- * Implementation of hook_disable().
- */
-function video_upload_disable() {
-  // Notify CCK.
-  drupal_load('module', 'content');
-  content_notify('disable', 'video_upload');
-}
-
-/**
- * Implementation of hook_uninstall().
+ * Implement hook_uninstall().
  */
 function video_upload_uninstall() {
-  // Notify CCK.
-  drupal_load('module', 'content');
-  content_notify('uninstall', 'video_upload');
-
   variable_del('video_upload_youtube_developer_key');
   variable_del('video_upload_youtube_username');
   variable_del('video_upload_youtube_password');
 }
 
 /**
- * Implementation of hook_requirements().
+ * Implement hook_requirements().
  *
  * Checks for the existence required variable settings
  */
@@ -126,7 +97,7 @@ function video_upload_requirements($phase) {
 }
 
 /**
- * Implementation of hook_update_N().
+ * Implement hook_update_N().
  *
  * - Prefix "video_" onto status, status_ts and id column names.
  * - Updates constants to simple text values rather than ambigous integers.
