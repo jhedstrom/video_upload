@@ -31,13 +31,6 @@ define('VIDEO_UPLOAD_SYNC', 1);
 define('VIDEO_UPLOAD_SYNC_APPEND', 2);
 
 /**
- * Implement hook_init().
- */
-function video_upload_init() {
-  module_load_include('inc', 'video_upload', 'video_upload_widget');
-}
-
-/**
  * Initialize the Video Upload provider.
  */
 function video_upload_initialize_provider() {
@@ -70,24 +63,18 @@ function video_upload_theme() {
     'video_upload_missing_image' => array(
       'arguments' => array('style' => 'full', 'width' => 425, 'height' => 355, 'attributes' => array()),
     ),
-
-    // video_upload_widget form element type theme function.
     'video_upload_widget' => array(
       'arguments' => array('element' => NULL),
-      'file' => 'video_upload_widget.inc',
-    ),
-    'video_upload_widget_preview' => array(
-      'arguments' => array('item' => NULL),
-      'file' => 'video_upload_widget.inc',
+      'file' => 'video_upload.field.inc',
     ),
   );
 
-  // CCK formatters.
+  // Field formatters.
   $formatters = array(
-    'video_upload_formatter_default',
-    'video_upload_formatter_thumb',
-    'video_upload_formatter_thumb_link',
-    'video_upload_formatter_small',
+    'field_formatter_video_upload',
+    'field_formatter_video_upload_thumb',
+    'field_formatter_video_upload_thumb_link',
+    'field_formatter_video_upload_small',
   );
 
   foreach ($formatters as $formatter) {
@@ -266,49 +253,6 @@ function video_upload_get_field_list($node_type = NULL, $field = NULL) {
 }
 
 /**
- * Implement hook_field_widget_info().
- */
-function video_upload_field_widget_info() {
-  $file = module_invoke('file', 'field_widget_info');
-  $video = array(
-    'video_upload_widget' => array(
-      'label' => t('Upload/Edit/Display Video'),
-      'description' => t('Upload video files to a 3rd-party provider.'),
-      'field types' => array('video_upload'),
-      'behaviors' => array(
-        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
-        'default value' => FIELD_BEHAVIOR_DEFAULT,
-      ),
-    ),
-  );
-  $video['video_upload_widget']['settings'] = $file['file_generic']['settings'];
-  $video['video_upload_widget']['settings'] += array(
-    'video_category' => '',
-    'auto_delete_rejected_videos' => 0,
-    'remove_deleted_videos' => 0,
-    'default_title' => '',
-    'default_description' => '',
-    'default_keywords' => '',
-    'developer_tags' => '',
-    'display' => array(
-      'autoplay' => 0,
-      'default_width' => 480,
-      'default_height' => 295,
-      'small_width' => 240,
-      'small_height' => 148,
-      'thumb_width' => 128,
-      'thumb_height' => 72,
-      'related_videos' => 0,
-      'fullscreen' => 1,
-    ),
-    'default_title_sync',
-    'default_description_sync',
-    'default_keyword_sync',
-  );
-  return $video;
-}
-
-/**
  * Implement hook_widget().
  */
 function video_upload_widget(&$form, &$form_state, $field, $items, $delta = 0) {
@@ -330,14 +274,6 @@ function video_upload_widget(&$form, &$form_state, $field, $items, $delta = 0) {
   $element = filefield_widget($form, $form_state, $field, $items, $delta);
 
   return $element;
-}
-
-/**
- * Implement CCK's hook_content_is_empty().
- */
-function video_upload_content_is_empty($item, $field) {
-  // Use FileField's definition of empty.
-  return filefield_content_is_empty($item, $field);
 }
 
 /**

@@ -282,10 +282,9 @@ function theme_video_upload_missing_image($style = 'full', $width = 425, $height
 }
 
 /**
- * @defgroup "CCK Formatter theme functions."
- * @{
+ * Default video upload field formatter.
  */
-function theme_video_upload_formatter_default($element) {
+function theme_field_formatter_video_upload($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
@@ -299,7 +298,10 @@ function theme_video_upload_formatter_default($element) {
   return theme('video_upload_video', $item['video_id'], $display['default_width'], $display['default_height'], $field);
 }
 
-function theme_video_upload_formatter_small($element) {
+/**
+ * Small video upload field formatter.
+ */
+function theme_field_formatter_video_upload_small($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
@@ -310,7 +312,10 @@ function theme_video_upload_formatter_small($element) {
   return theme('video_upload_video', $item['video_id'], $display['small_width'], $display['small_height'], $field);
 }
 
-function theme_video_upload_formatter_thumb($element) {
+/**
+ * Thumbnail video upload field formatter.
+ */
+function theme_field_formatter_video_upload_thumb($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
@@ -321,7 +326,10 @@ function theme_video_upload_formatter_thumb($element) {
   return theme('video_upload_video_thumb', $field, $item, $item['nid'], FALSE);
 }
 
-function theme_video_upload_formatter_thumb_link($element) {
+/**
+ * Thumbnail linked to node video upload field formatter.
+ */
+function theme_field_formatter_video_upload_thumb_link($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
