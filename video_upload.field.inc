@@ -17,7 +17,7 @@ function video_upload_field_info() {
       'label' => t('Video Upload'),
       'description' => t('Upload and send video to a 3rd-party provider.'),
       'default_widget' => 'video_upload_widget',
-      'default_formatter' => 'video_upload_default', 
+      'default_formatter' => 'video_upload', 
     ),
   );
   $video['video_upload']['settings'] = $file['file']['settings'];
@@ -63,28 +63,29 @@ function video_upload_field_schema($field) {
  * Implement hook_field_formatter_info().
  */
 function video_upload_field_formatter_info() {
-  return array(
-    'video_upload_default' => array(
-      'label' => t('Default'),
+  $formatters = array(
+    'video_upload' => array(
+      'label' => t('Full size video'),
       'field types' => array('video_upload'),
-      'description' => t('Displays fullsize video as defined in the field settings.'),
+      'theme' => array('function' => 'theme_field_formatter_video_upload'),
     ),
     'video_upload_thumb' => array(
       'label' => t('Thumbnail image'),
       'field types' => array('video_upload'),
-      'description' => t('Image thumbnail of the dimensions defined in the field settings.'),
+      'theme' => array('function' => 'theme_field_formatter_video_upload_thumb'),
     ),
     'video_upload_thumb_link' => array(
       'label' => t('Thumbnail image as link to node'),
       'field types' => array('video_upload'),
-      'description' => t('Thumbnail image linking to video node.'),
+      'theme' => array('function' => 'theme_field_formatter_video_upload_thumb_link'),
     ),
     'video_upload_small' => array(
       'label' => t('Small Video'),
       'field types' => array('video_upload'),
-      'description' => t('Small video as defined in the field settings.'),
+      'theme' => array('function' => 'theme_field_formatter_video_upload_small'),
     ),
   );
+  return $formatters;
 }
 
 /**

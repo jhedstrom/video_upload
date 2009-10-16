@@ -10,14 +10,20 @@
 /**
  * Theme a video
  */
-function theme_video_upload_video($yt_id, $width = '480', $height = '295', $field = array(), $params = array(), $attributes = array()) {
+function theme_video_upload_video($variables) {
+  $yt_id = $variables['yt_id'];
+  $width = $variables['width'];
+  $height = $variables['height'];
+  $params = $variables['params'];
+  $attributes = $variables['attributes'];
+
   if (!$yt_id) {
     // Output the video image instead.
     $attributes = array(
       'alt' => t('Video processing'),
       'title' => t('Video processing'),
     );
-    return theme('video_upload_missing_image', 'full', $width, $height, $attributes);
+    return theme('video_upload_missing_image', array('style' => 'full', 'width' => $width, 'height' => $height, 'attributes' => $attributes));
   }
 
   // @todo: Abstract out YouTube.
@@ -206,7 +212,8 @@ function theme_video_upload_admin_video_form($form) {
  * @param mixed $status
  *   A status object or integer
  */
-function theme_video_upload_status_text($status) {
+function theme_video_upload_status_text($variables) {
+  $status = $variables['status'];
   if (is_object($status)) {
     $stat = $status->status;
   }
@@ -264,7 +271,12 @@ function theme_video_upload_status_text($status) {
  * @param array $attributes
  *   html attributes for inside the image tag
  */
-function theme_video_upload_missing_image($style = 'full', $width = 425, $height = 350, $attributes = array()) {
+function theme_video_upload_missing_image($variables) {
+  $style = $variables['style'];
+  $width = $variables['width'];
+  $height = $variables['height'];
+  $attributes = $variables['attributes'];
+
   global $base_path;
   $file = $style == 'full' ? 'video.png' : 'video-thumbnail.png';
   $image = $base_path . drupal_get_path('module', 'video_upload') . '/images/' . $file;
@@ -284,18 +296,19 @@ function theme_video_upload_missing_image($style = 'full', $width = 425, $height
 /**
  * Default video upload field formatter.
  */
-function theme_field_formatter_video_upload($element) {
-  $field = content_fields($element['#field_name'], $element['#type_name']);
-  $display = $field['widget']['display'];
+function theme_field_formatter_video_upload($variables) {
+  $element = $variables['element'];
+  $field = field_info_instance($element['#object_type'], $element['#field_name'], $element['#bundle']);
+  $display = $field['widget']['settings']['display'];
   $item = $element['#item'];
-  if (!isset($item['video_status'])) {
+  if (!isset($item['fid'])) {
     return;
   }
 
   if (!$item['video_id']) {
-    drupal_set_message(theme('video_upload_status_text', $item['video_status']));
+    drupal_set_message(theme('video_upload_status_text', array('status' => $item['video_status'])));
   }
-  return theme('video_upload_video', $item['video_id'], $display['default_width'], $display['default_height'], $field);
+  return theme('video_upload_video', array('yt_id' => $item['video_id'], 'width' => $display['default_width'], 'height' => $display['default_height'], 'field' => $field));
 }
 
 /**
