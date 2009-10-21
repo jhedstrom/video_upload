@@ -301,7 +301,7 @@ function theme_field_formatter_video_upload($variables) {
   $field = field_info_instance($element['#object_type'], $element['#field_name'], $element['#bundle']);
   $display = $field['widget']['settings']['display'];
   $item = $element['#item'];
-  if (!isset($item['fid'])) {
+  if (!$item['fid']) {
     return;
   }
 
@@ -318,7 +318,7 @@ function theme_field_formatter_video_upload_small($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
-  if (!isset($item['video_status'])) {
+  if (!$item['fid']) {
     return;
   }
 
@@ -332,7 +332,7 @@ function theme_field_formatter_video_upload_thumb($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
-  if (!isset($item['video_status'])) {
+  if (!$item['fid']) {
     return;
   }
 
@@ -346,7 +346,7 @@ function theme_field_formatter_video_upload_thumb_link($element) {
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $display = $field['widget']['display'];
   $item = $element['#item'];
-  if (!isset($item['video_status'])) {
+  if (!$item['fid']) {
     return;
   }
 

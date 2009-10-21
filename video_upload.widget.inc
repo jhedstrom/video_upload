@@ -236,50 +236,6 @@ function _video_upload_widget_validate_strip_tags($element, &$form_state) {
 }
 
 /**
- * @defgroup "FileField widget element callbacks.
- * @{
- *
- * The call backs are called by form elements that leverage the
- * filefield_widget_value and filefield_widget_process callbacks.  They will
- * be called after the filefield callbacks and their return values will be
- * merged with the filefield callback's.
- */
-function video_upload_widget_value($element, $edit = FALSE) {
-  $item = filefield_widget_value($element, $edit);
-  if ($edit) {
-    $item['video_status'] = isset($edit['video_status']) ? $edit['video_status'] : VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
-    $item['video_status_ts'] = isset($edit['video_status_ts']) ? $edit['video_status_ts'] : $_SERVER['REQUEST_TIME'];
-  }
-  else {
-    $item['video_status'] = VIDEO_UPLOAD_STATUS_UPLOAD_PENDING;
-    $item['video_status_ts'] = $_SERVER['REQUEST_TIME'];
-  }
-
-  return $item;
-}
-
-function video_upload_widget_process($element, $edit, &$form_state, $form) {
-  $file = $element['#value'];
-
-  $field = content_fields($element['#field_name'], $element['#type_name']);
-
-  $element['video_status'] = array(
-    '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['video_status'],
-  );
-  $element['video_status_ts'] = array(
-    '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['video_status_ts'],
-  );
-  $element['video_id'] = array(
-    '#type' => 'hidden',
-    '#default_value' => $element['#default_value']['video_id'],
-  );
-
-  return $element;
-}
-
-/**
  * An #element_validate callback for the video_upload_widget field.
  *
  * This is mostly a copy of FileField's widget validate callback.

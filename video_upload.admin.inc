@@ -10,12 +10,13 @@
  * Obtain a list of all fields using the video upload module.
  */
 function _video_upload_relevant_fields() {
-  $fields = content_fields();
+  $fields = field_info_fields(NULL, NULL, 'video_upload');
   $video_upload_fields = array();
   foreach ($fields as $field => $config) {
-    if (($config['type'] == 'video_upload') && ($config['widget']['type'] == 'video_upload_widget')) {
+    // @TODO This needs to work via the field storage api instead.
+    if ($config['storage']['type'] == 'field_sql_storage') {
       $video_upload_fields[$field] = $config;
-      $video_upload_fields[$field]['database_information'] = content_database_info($config);
+      $video_upload_fields[$field]['storage']['table'] = _field_sql_storage_tablename($config);
     }
   }
 
@@ -52,6 +53,14 @@ function _video_upload_admin_settings_form() {
     '#default_value' => variable_get('video_upload_youtube_password', FALSE),
     '#required' => TRUE,
   );
+  $form['video_upload_cron_queue_time'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max upload time'),
+    '#description' => t('Maximum time, in seconds, cron should devote to uploading videos.'),
+    '#required' => TRUE,
+    '#default_value' => variable_get('video_upload_cron_queue_time', 600),
+  );
+
   return system_settings_form($form);
 }
 
@@ -145,7 +154,7 @@ function video_upload_admin_video_form() {
     $where = array();
     $video_id_field = $db_info['columns']['video_id']['column'];
     $result = db_query("SELECT %s AS id, nid FROM {" . $db_info['table'] . "}", $video_id_field);
-    while ($id = db_fetch_object($result)) {
+    foreach ($result as $id) {
       // add field_name
       $id->field_name = $field;
       $id->id_field_name = $video_id_field;
@@ -302,7 +311,7 @@ function _video_upload_upload_all($fields) {
   $uploaded = 0;
   foreach ($fields as $field => $config) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UPLOAD_PENDING);
-    while ($video = db_fetch_object($result)) {
+    foreach ($result as $video) {
       $video->field = $config;
       if (video_upload_upload($config, $video)) {
         $uploaded ++;
@@ -325,7 +334,7 @@ function _video_upload_verify_all($fields) {
   $video_ids = $videos = array();
   foreach ($fields as $field => $config) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UNKNOWN);
-    while ($video = db_fetch_object($result)) {
+    foreach ($result as $video) {
       $video->field = $config;
       $video_ids[] = $video->video_id;
       $videos[$video->video_id] = $video;
@@ -391,7 +400,7 @@ function _video_upload_update_all_videos($fields) {
   foreach ($fields as $field => $config) {
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_OK);
 
-    while ($video = db_fetch_object($result)) {
+    foreach ($result as $video) {
       $video->field = $config;
       $video_ids[] = $video->video_id;
       $videos[$video->video_id] = $video;
@@ -438,7 +447,7 @@ function _video_upload_delete_rejected_videos($fields) {
       continue;
     }
     $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_DELETE);
-    while ($video = db_fetch_object($result)) {
+    foreach ($result as $video) {
       $video_ids[] = $video->video_id;
       $videos[$video->video_id] = $video;
     }
@@ -482,14 +491,20 @@ function _video_upload_delete_rejected_videos($fields) {
  *   Video status
  */
 function _video_upload_query_videos($config, $status) {
-  $db_info = $config['database_information'];
-  $params[':video_id'] = $db_info['columns']['video_id']['column'];
-  $params[':filefield'] = $db_info['columns']['fid']['column'];
-  $params[':video_status_field'] = $db_info['columns']['video_status']['column'];
-  $params[':video_status_field_2'] = $db_info['columns']['video_status']['column'];
-  $params[':video_status'] = $status;
-  $params[':filefield_2'] = $db_info['columns']['fid']['column'];
-  $multiple = $config['multiple'] ? ', delta' : '';
-  return db_query("SELECT %s AS video_id, nid, %s AS fid, %s AS video_status" . $multiple . " FROM {" . $db_info['table'] . "} t WHERE %s = '%s' AND %s IS NOT NULL", $params);
+  $table = $config['storage']['table'];
+  $video_id_field = $config['field_name'] . '_video_id';
+  $fid_field = $config['field_name'] . '_fid';
+  $video_status_field = $config['field_name'] . '_video_status';
+
+  $query = db_select($table, 't');
+  $query->addField('t', $video_id_field, 'video_id'); 
+  $query->addField('t', 'bundle');
+  $query->addField('t', 'entity_id');
+  $query->addField('t', $fid_field, 'fid');
+  $query->addField('t', $video_status_field, 'video_status');
+  $query->addField('t', 'delta');
+  $query->condition($video_status_field, $status);
+
+  return $query->execute();
 }
   

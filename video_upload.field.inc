@@ -162,11 +162,68 @@ function video_upload_field_widget_settings_form($field, $instance) {
 }
 
 /**
- * Implementation of hook_field_widget().
+ * Implement of hook_field_widget().
  */
 function video_upload_field_widget(&$form, &$form_state, $field, $instance, $langcode, $items, $delta = 0) {
-  $file = file_field_widget(&$form, &$form_state, $field, $instance, $langcode, $items, $delta);
-  return $file;
+  $elements = file_field_widget(&$form, &$form_state, $field, $instance, $langcode, $items, $delta);
+
+  foreach (element_children($elements) as $delta) {
+    $elements[$delta]['#process'][] = 'video_upload_field_widget_process';
+  }
+
+  return $elements;
+}
+
+/**
+ * #process callback for the video upload widget.
+ */
+function video_upload_field_widget_process($element, &$form_state, $form) {
+  $item = $element['#value'];
+
+  $field = field_info_field($element['#field_name']);
+
+  $element['video_status'] = array(
+    '#type' => 'hidden',
+    '#default_value' => isset($element['video_status']) ? $element['video_status'] : VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
+  );
+  $element['video_status_ts'] = array(
+    '#type' => 'hidden',
+    '#default_value' => isset($element['video_status_ts']) ? $element['video_status_ts'] : REQUEST_TIME,
+  );
+  $element['video_id'] = array(
+    '#type' => 'hidden',
+    '#default_value' => isset($element['video_id']) ? $element['video_id'] : '',
+  );
+
+  return $element;
+}
+
+/**
+ * Implement hook_field_insert().
+ */
+function video_upload_field_insert($obj_type, $object, $field, $instance, $langcode, &$items) {
+  video_upload_field_update($obj_type, $object, $field, $instance, $langcode, $items);
+}
+
+/**
+ * Implement hook_field_update().
+ */
+function video_upload_field_update($obj_type, $object, $field, $instance, $langcode, &$items) {
+  file_field_update($obj_type, $object, $field, $instance, $langcode, $items);
+}
+
+/**
+ * Implement hook_field_delete().
+ */
+function video_upload_field_delete($obj_type, $object, $field, $instance, $langcode, &$items) {
+  file_field_delete($obj_type, $object, $field, $instance, $langcode, $items);
+}
+
+/**
+ * Implement hook_field_delete_revision().
+ */
+function video_upload_field_delete_revision($obj_type, $object, $field, $instance, $langcode, &$items) {
+  file_field_delete_revision($obj_type, $object, $field, $instance, $langcode, $items);
 }
 
 /**
