@@ -112,13 +112,15 @@ function _video_upload_gdata_youtube($http_client = NULL) {
   _video_upload_gdata_initialize('youtube');
   try {
     $yt = new Zend_Gdata_YouTube($http_client);
+
     // Set API version to 2.0.
     $yt->setMajorProtocolVersion(2);
+
+    return $yt;
   }
   catch (Zend_Gdata_App_HttpException $e) {
     watchdog('video_upload', 'Authentication error while creating a YouTube connection object: %error', array('%error' => $e->getMessage()), WATCHDOG_ERROR);
   }
-  return $yt;
 }
 
 /**

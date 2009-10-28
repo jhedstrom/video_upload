@@ -173,7 +173,7 @@ function _video_upload_delete_video_remote($yt, $video) {
  * required item by youtube.
  */
 function _video_upload_get_video_category($node, $field) {
-  return $field['widget']['video_category'] ? $field['widget']['video_category'] : 'Entertainment';
+  return $field['widget']['settings']['video_category'] ? $field['widget']['settings']['video_category'] : 'Entertainment';
 }
 
 /**
@@ -196,9 +196,9 @@ function _video_upload_get_video_keywords($node, $widget) {
     $video_taxonomy = implode(',', $video_taxonomy);
   }
 
-  switch ($widget['default_keyword_sync']) {
+  switch ($widget['settings']['default_keyword_sync']) {
     case VIDEO_UPLOAD_SYNC_APPEND :
-      $keywords = $widget['default_keywords'];
+      $keywords = $widget['settings']['default_keywords'];
       if ($video_taxonomy) {
         $keywords .= ',';
       }
@@ -208,7 +208,7 @@ function _video_upload_get_video_keywords($node, $widget) {
       break;
     case VIDEO_UPLOAD_SYNC_NONE :
     default :
-      $keywords = $widget['default_keywords'];
+      $keywords = $widget['settings']['default_keywords'];
   }
 
   // Max length total is 120 characters.
@@ -317,7 +317,7 @@ function _video_upload_get_developer_tag_feed_url($tag) {
  * Attach the file for upload.
  */
 function _video_upload_attach_video(&$yt, &$yt_video, $video) {
-  _video_upload_gdata_attach_video($yt, $yt_video, $video->filepath, $video->filemime);
+  _video_upload_gdata_attach_video($yt, $yt_video, $video['filepath'], $video['filemime']);
 }
 
 /**

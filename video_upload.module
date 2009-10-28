@@ -46,25 +46,25 @@ function video_upload_initialize_provider() {
 function video_upload_theme() {
   $theme = array(
     'video_upload_video' => array(
-      'arguments' => array('yt_id' => NULL, 'width' => '425', 'height' => '355', 'field' => array(), 'params' => array(), 'attributes' => array()),
+      'variables' => array('yt_id' => NULL, 'width' => '425', 'height' => '355', 'field' => array(), 'params' => array(), 'attributes' => array()),
     ),
     'video_upload_video_thumb' => array(
-      'arguments' => array('field' => NULL, 'item' => NULL, 'node' => NULL, 'as_link' => FALSE),
+      'variables' => array('field' => NULL, 'item' => NULL, 'node' => NULL, 'as_link' => FALSE),
     ),
     'video_upload_video_status_message' => array(
-      'arguments' => array('item' => NULL, 'message' => NULL),
+      'variables' => array('item' => NULL, 'message' => NULL),
     ),
     'video_upload_admin_video_form' => array(
-      'arguments' => array('form' => NULL),
+      'variables' => array('form' => NULL),
     ),
     'video_upload_status_text' => array(
-      'arguments' => array('status' => NULL),
+      'variables' => array('status' => NULL),
     ),
     'video_upload_missing_image' => array(
-      'arguments' => array('style' => 'full', 'width' => 425, 'height' => 355, 'attributes' => array()),
+      'variables' => array('style' => 'full', 'width' => 425, 'height' => 355, 'attributes' => array()),
     ),
     'video_upload_widget' => array(
-      'arguments' => array('element' => NULL),
+      'variables' => array('element' => NULL),
       'file' => 'video_upload.field.inc',
     ),
   );
@@ -79,7 +79,7 @@ function video_upload_theme() {
 
   foreach ($formatters as $formatter) {
     $theme[$formatter] = array(
-      'arguments' => array('element' => NULL),
+      'render element' => 'element',
     );
   }
 
@@ -178,19 +178,11 @@ function video_upload_file_references($file) {
  * Implement hook_widget().
  */
 function video_upload_widget(&$form, &$form_state, $field, $items, $delta = 0) {
-  if ($field['widget']['use_browser_upload_method']) {
-    // The browser upload method is sufficiently different from direct upload
-    // that it warrants entirely separate logic.
-    // @todo
-    module_load_include('browser.inc', 'video_upload');
-    return _video_upload_browser_method_widget($form, $form_state, $field, $items, $delta);
-  }
-
-  if (empty($items[$delta])) {
+ if (empty($items[$delta])) {
     $items[$delta] = array(
       'video_id' => '',
       'video_status' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
-      'video_status_ts' => $_SERVER['REQUEST_TIME'],
+      'video_status_ts' => REQUEST_TIME,
     );
   }
   $element = filefield_widget($form, $form_state, $field, $items, $delta);
@@ -203,22 +195,22 @@ function video_upload_widget(&$form, &$form_state, $field, $items, $delta = 0) {
  */
 function _video_upload_set_default_title($node, $widget) {
   $title = '';
-  switch ($widget['default_title_sync']) {
+  switch ($widget['settings']['default_title_sync']) {
     case VIDEO_UPLOAD_SYNC_APPEND :
-      $title = $widget['default_title'];
-      if ($node->title) {
+      $title = $widget['settings']['default_title'];
+      if ($node->title[FIELD_LANGUAGE_NONE][0]['value']) {
         $title .= ': ';
       }
       // Fall through to append.
     case VIDEO_UPLOAD_SYNC :
-      if ($node->title) {
-        $title = $title . $node->title;
+      if ($node->title[FIELD_LANGUAGE_NONE][0]['value']) {
+        $title = $title . $node->title[FIELD_LANGUAGE_NONE][0]['value'];
         break;
       }
     case VIDEO_UPLOAD_SYNC_NONE :
     default :
-      $title = $widget['default_title']
-        ? $widget['default_title']
+      $title = $widget['settings']['default_title']
+        ? $widget['settings']['default_title']
         : t('Video from @site_name', array('@site_name' => variable_get('site_name', 'Drupal')));
   }
 
@@ -247,18 +239,19 @@ function _video_upload_set_default_title($node, $widget) {
  */
 function _video_upload_set_default_description($node, $widget) {
   // Set description to teaser.
-  switch ($widget['default_description_sync']) {
+  switch ($widget['settings']['default_description_sync']) {
     case VIDEO_UPLOAD_SYNC_APPEND :
-      $description = $widget['default_description'] . "\n\n";
+      $description = $widget['settings']['default_description'] . "\n\n";
       // Aall through to add teaser.
     case VIDEO_UPLOAD_SYNC :
-      if ($node->teaser) {
+      if (isset($node->teaser)) {
+        // @TODO teasers are done differently in d7.
         $description = $description . $node->teaser;
         break;
       }
       // Otherwise, fall through.
     case VIDEO_UPLOAD_SYNC_NONE :
-      $description = $widget['default_description'];
+      $description = $widget['settings']['default_description'];
 
   }
 
@@ -288,8 +281,8 @@ function _video_upload_set_default_description($node, $widget) {
  * @return array
  */
 function _video_upload_set_developer_tags($node, $widget) {
-  if ($widget['developer_tags']) {
-    $tags = explode(',', $widget['developer_tags']);
+  if ($widget['settings']['developer_tags']) {
+    $tags = explode(',', $widget['settings']['developer_tags']);
   }
   else {
     return array(substr(str_replace(array(',', ' '), '', trim(variable_get('site_name', 'Drupal'))), 0, 25));
@@ -316,11 +309,12 @@ function video_upload_cron() {
   module_load_include('admin.inc', 'video_upload');
 
   // Find types containing a video_upload field.
-  $fields = _video_upload_relevant_fields();
+  $fields = field_info_fields(NULL, NULL, 'video_upload');
 
   // Verify videos.
   _video_upload_verify_all($fields);
 
+  return;
   // Delete videos queued for deletion.
   _video_upload_delete_rejected_videos($fields);
 
@@ -342,54 +336,6 @@ function video_upload_views_api() {
 }
 
 /**
- * Implement hook_field_settings_alter().
- *
- * For any fields using the video upload widget:
- * - Adds required database columns.
- * - Defines views data.
- */
-function video_upload_field_settings_alter(&$data, $op, $field) {
-  if (!isset($field['widget']) || $field['widget']['type'] != 'video_upload_widget') {
-    return;
-  }
-  switch ($op) {
-    case 'database columns':
-      $data += array(
-        // The provider ID.
-        'video_id' => array(
-          'type' => 'varchar',
-          'length' => 32,
-          'views' => TRUE,
-        ),
-        // Video status.
-        'video_status' => array(
-          'type' => 'varchar',
-          'length' => 32,
-          'default' => VIDEO_UPLOAD_STATUS_UPLOAD_PENDING,
-          'sortable' => TRUE,
-          'views' => TRUE,
-        ),
-        // Time of status update.
-        'video_status_ts' => array(
-          'type' => 'int',
-          'length' => 11,
-          'sortable' => TRUE,
-          'default' => '0',
-          'views' => TRUE,
-        ),
-      );
-      break;
-
-    case 'views data':
-      $table_alias = content_views_tablename($field);
-      $field_name = $field['field_name'];
-      $data[$table_alias][$field_name . '_video_status']['filter']['handler'] = 'views_handler_filter_video_upload_status';
-      $data[$table_alias][$field_name . '_video_status_ts']['filter']['handler'] = 'views_handler_filter_date';
-      break;
-  }
-}
-
-/**
  * Get taxonomy terms associated with node.
  * @param object $node
  * @return array
@@ -398,7 +344,8 @@ function video_upload_field_settings_alter(&$data, $op, $field) {
 function _video_upload_get_formatted_taxonomy($node) {
   $video_taxonomy = array();
 
-  if (!$node->taxonomy) {
+  if (!isset($node->taxonomy)) {
+    // @TODO this needs to work for d7.
     return FALSE;
   }
 
@@ -431,22 +378,39 @@ function _video_upload_max_length_provider($entity = 'title') {
  * @return boolean
  *   True if any videos were uploaded.
  */
-function video_upload_upload($field, $video) {
-  // @TODO this shouldn't be node-specific.
-  $entity = entity_load('node', array($video->entity_id));
-  // Attach file information.
-  $file = db_query("SELECT * FROM {file} WHERE fid = :fid", array(':fid' => $video->fid))->fetchObject();
-  $video->filepath = $file->filepath;
-  $video->filemime = $file->filemime;
-  $result = video_upload_provider_upload($video, $entity, $field);
-  if ($result['video_id']) {
-    $video->video_id = $result['video_id'];
-    $video->video_status = VIDEO_UPLOAD_STATUS_UNKNOWN;
-    $video->video_status_ts = $_SERVER['REQUEST_TIME'];
-    $update = TRUE;
+function video_upload_upload($field, $entity) {
+  $update = 0;
+  foreach ($entity->{$field['field_name']}[FIELD_LANGUAGE_NONE] as $delta => $video) {
+    // Make sure this video needs to be uploaded.
+    if ($video['video_status'] != VIDEO_UPLOAD_STATUS_UPLOAD_PENDING) {
+      continue;
+    }
+    $file = file_load($video['fid']);
+    $video['filepath'] = drupal_realpath($file->uri);
+    $video['filemime'] = $file->filemime;
+
+    // Perform upload.
+    $result = video_upload_provider_upload($video, $entity, $field);
+    if ($result['video_id']) {
+      $video['video_id'] = $result['video_id'];
+      $video['video_status'] = VIDEO_UPLOAD_STATUS_UNKNOWN;
+      $video['video_status_ts'] = REQUEST_TIME;
+      $update ++;
+      $entity->{$field['field_name']}[FIELD_LANGUAGE_NONE][$delta] = $video;
+    }
   }
 
-  return _video_upload_update_video($video);
+  if ($update > 0) {
+    $function = $entity->object . '_save';
+    if (function_exists($function)) {
+      $function($entity);
+    }
+    else {
+      // @TODO object save function doesn't exist. Throw exception.
+    }
+  }
+
+  return $update;
 }
 
 /**
@@ -521,11 +485,12 @@ function video_upload_get_all_statuses() {
  * Update a video upload record.
  */
 function _video_upload_update_video($video) {
+  // @TODO use entity_load.
   $node = node_load($video->nid);
   $field = $video->field;
   $field_name = $video->field['field_name'];
   $delta = isset($video->delta) ? $video->delta : 1;
-  $node->{$field_name}[$delta - 1]['video_status_ts'] = $_SERVER['REQUEST_TIME'];
+  $node->{$field_name}[$delta - 1]['video_status_ts'] = REQUEST_TIME;
   $node->{$field_name}[$delta - 1]['video_status'] = $video->video_status;
   $node->{$field_name}[$delta - 1]['video_id'] = $video->video_id;
   node_save($node);

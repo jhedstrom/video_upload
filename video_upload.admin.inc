@@ -7,23 +7,6 @@
  */
 
 /**
- * Obtain a list of all fields using the video upload module.
- */
-function _video_upload_relevant_fields() {
-  $fields = field_info_fields(NULL, NULL, 'video_upload');
-  $video_upload_fields = array();
-  foreach ($fields as $field => $config) {
-    // @TODO This needs to work via the field storage api instead.
-    if ($config['storage']['type'] == 'field_sql_storage') {
-      $video_upload_fields[$field] = $config;
-      $video_upload_fields[$field]['storage']['table'] = _field_sql_storage_tablename($config);
-    }
-  }
-
-  return $video_upload_fields;
-}
-
-/**
  * Callback function for admin/settings/video-upload
  * @return
  *   Returns an array defining the admin settings form
@@ -148,7 +131,7 @@ function video_upload_admin_video_form() {
 
   // Get list of all videos.
   $all_videos = array();
-  $fields = _video_upload_relevant_fields();
+  $fields = field_info_fields(NULL, NULL, 'video_upload');
   foreach ($fields as $field => $config) {
     $db_info = $config['database_information'];
     $where = array();
@@ -184,8 +167,8 @@ function video_upload_admin_video_form() {
   foreach ($all_videos as $id => $video) {
     if (!in_array($id, $video_ids_youtube)) {
       $node = node_load(array('nid' => $video->nid));
-      $video->title = $node->title;
-      $video->link = l($node->title, 'node/' . $node->nid);
+      $video->title = $node->title[FIELD_LANGUAGE_NONE][0]['value'];
+      $video->link = l($node->title[FIELD_LANGUAGE_NONE][0]['value'], 'node/' . $node->nid);
       $big_feed_list[] = $video;
     }
   }
@@ -294,11 +277,6 @@ function video_upload_admin_video_form() {
 }
 
 /**
- * @defgroup "Video Upload video processing functions."
- * @{
- */
-
-/**
  * Upload all queued videos to the provider.
  *
  * @param array $fields
@@ -309,12 +287,15 @@ function video_upload_admin_video_form() {
  */
 function _video_upload_upload_all($fields) {
   $uploaded = 0;
-  foreach ($fields as $field => $config) {
-    $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UPLOAD_PENDING);
-    foreach ($result as $video) {
-      $video->field = $config;
-      if (video_upload_upload($config, $video)) {
-        $uploaded ++;
+  foreach ($fields as $name => $field) {
+    $result = _video_upload_query_videos($field, VIDEO_UPLOAD_STATUS_UPLOAD_PENDING);
+    foreach ($result as $entity) {
+      // Attach the widget/instance definition.
+      $field = $entity->field = field_info_instance($entity->object, $field['field_name'], $entity->bundle);
+
+      // Upload video.
+      if ($count = video_upload_upload($field, $entity)) {
+        $uploaded += $count;
       }
     }
   }
@@ -443,6 +424,7 @@ function _video_upload_delete_rejected_videos($fields) {
   // @todo Abstract out YouTube.
   $video_ids = $videos = array();
   foreach ($fields as $field => $config) {
+    // @TODO this setting needs to be per-field, not per instance.
     if (!$config['widget']['auto_delete_rejected_videos'] && !$config['widget']['remove_deleted_videos']) {
       continue;
     }
@@ -472,39 +454,39 @@ function _video_upload_delete_rejected_videos($fields) {
     _video_upload_delete_video_remote($connection, $video);
 
     // Remove record from local table.
+    // @TODO this is provider-specific.
     $local_video = $videos[$video->getVideoId()];
     video_upload_delete_local($local_video);
   }
 }
 
 /**
- * @} End defgroup "Video Upload video processing functions."
- */
-
-/**
  * Query to find all videos for a given field.
  *
- * @param array $config
- *   CCK field definition array.
- *
+ * @param array $field
+ *   Field definition array.
  * @param string $video_status
  *   Video status
+ * @return
+ *   Array of fully loaded entity objects.
  */
-function _video_upload_query_videos($config, $status) {
-  $table = $config['storage']['table'];
-  $video_id_field = $config['field_name'] . '_video_id';
-  $fid_field = $config['field_name'] . '_fid';
-  $video_status_field = $config['field_name'] . '_video_status';
+function _video_upload_query_videos($field, $status) {
+  $results = field_attach_query($field['id'], array(array('video_status', $status)));
+  $video_entities = array();
+  foreach ($results as $object => $entities) {
+    // Get details on the object type so those can be passed along
+    // with the video.
+    $object_info = entity_get_info($object);
+    $id_field = $object_info['object keys']['id'];
 
-  $query = db_select($table, 't');
-  $query->addField('t', $video_id_field, 'video_id'); 
-  $query->addField('t', 'bundle');
-  $query->addField('t', 'entity_id');
-  $query->addField('t', $fid_field, 'fid');
-  $query->addField('t', $video_status_field, 'video_status');
-  $query->addField('t', 'delta');
-  $query->condition($video_status_field, $status);
+    // Load all matching entities.
+    $loaded_entities = entity_load($object, array_keys($entities));
 
-  return $query->execute();
+    foreach ($loaded_entities as $entity) {
+      $entity->object = $object;
+      $entity->bundle = $entities[$entity->$id_field]->type;
+      $video_entities[] = $entity;
+    }
+  }
+  return $video_entities;
 }
-  
