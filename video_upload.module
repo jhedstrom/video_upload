@@ -314,12 +314,13 @@ function video_upload_cron() {
   // Verify videos.
   _video_upload_verify_all($fields);
 
-  return;
+  // @TODO get this working in d7.
   // Delete videos queued for deletion.
-  _video_upload_delete_rejected_videos($fields);
+  // _video_upload_delete_rejected_videos($fields);
 
+  // @TODO get this working in d7.
   // Update provider info for all flagged videos.
-  _video_upload_update_all_videos($fields);
+  // _video_upload_update_all_videos($fields);
 
   // Upload any pending videos.
   _video_upload_upload_all($fields);
@@ -401,13 +402,7 @@ function video_upload_upload($field, $entity) {
   }
 
   if ($update > 0) {
-    $function = $entity->object . '_save';
-    if (function_exists($function)) {
-      $function($entity);
-    }
-    else {
-      // @TODO object save function doesn't exist. Throw exception.
-    }
+    _video_upload_update_video($entity);
   }
 
   return $update;
@@ -484,15 +479,12 @@ function video_upload_get_all_statuses() {
 /**
  * Update a video upload record.
  */
-function _video_upload_update_video($video) {
-  // @TODO use entity_load.
-  $node = node_load($video->nid);
-  $field = $video->field;
-  $field_name = $video->field['field_name'];
-  $delta = isset($video->delta) ? $video->delta : 1;
-  $node->{$field_name}[$delta - 1]['video_status_ts'] = REQUEST_TIME;
-  $node->{$field_name}[$delta - 1]['video_status'] = $video->video_status;
-  $node->{$field_name}[$delta - 1]['video_id'] = $video->video_id;
-  node_save($node);
-  return $video->video_id;
+function _video_upload_update_video($entity) {
+  $function = $entity->object . '_save';
+  if (function_exists($function)) {
+    $function($entity);
+  }
+  else {
+    // @TODO object save function doesn't exist. Throw exception.
+  }
 }

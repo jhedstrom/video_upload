@@ -223,7 +223,7 @@ function _video_upload_get_video_keywords($node, $widget) {
  */
 function _video_upload_update_video_remote($yt, $video, &$local_video, &$node) {
   $update = FALSE;
-  $widget = $local_video->field['widget'];
+  $widget = $node->field['widget'];
 
   $title = _video_upload_set_default_title($node, $widget);
   if ($video->getVideoTitle() != $title) {
@@ -249,7 +249,7 @@ function _video_upload_update_video_remote($yt, $video, &$local_video, &$node) {
     // The video has been updated, send changes to YouTube.
     if (_video_upload_gdata_update_video($yt, $video)) {
       // Set status to 2 to indicate an update has occurred.
-      $local_video->video_status = VIDEO_UPLOAD_STATUS_OK_SYNCED;
+      $local_video['video_status'] = VIDEO_UPLOAD_STATUS_OK_SYNCED;
     }
   }
 }

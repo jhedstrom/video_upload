@@ -313,12 +313,18 @@ function _video_upload_upload_all($fields) {
 function _video_upload_verify_all($fields) {
   // @TODO Abstract out youtube.
   $video_ids = $videos = array();
-  foreach ($fields as $field => $config) {
-    $result = _video_upload_query_videos($config, VIDEO_UPLOAD_STATUS_UNKNOWN);
-    foreach ($result as $video) {
-      $video->field = $config;
-      $video_ids[] = $video->video_id;
-      $videos[$video->video_id] = $video;
+  foreach ($fields as $name => $field) {
+    $result = _video_upload_query_videos($field, VIDEO_UPLOAD_STATUS_UNKNOWN);
+    foreach ($result as $entity) {
+      $entity->field = field_info_instance($entity->object, $field['field_name'], $entity->bundle);
+      foreach ($entity->{$field['field_name']}[FIELD_LANGUAGE_NONE] as $delta => $video) {
+        $video_ids[] = $video['video_id'];
+
+        // Attach relevant delta for saving purposes.
+        $entity->delta = $delta;
+
+        $videos[$video['video_id']] = $entity;
+      }
     }
   }
 
@@ -346,19 +352,21 @@ function _video_upload_verify_all($fields) {
         // The video is bad, the node should be deleted, or unpublished, or
         // perhaps the user should be notified Setting status to -1 queues
         // the video for deletion.
-        $local_video = $videos[$video->getVideoId()];
-        $local_video->video_status = VIDEO_UPLOAD_STATUS_BAD;
-        _video_upload_update_video($local_video);
+        $entity = $videos[$video->getVideoId()];
+        $entity->{$entity->field['field_name']}[FIELD_LANGUAGE_NONE][$entity->delta]['video_status'] = VIDEO_UPLOAD_STATUS_BAD;
+        _video_upload_update_video($entity);
       }
       elseif ($status->status === TRUE) {
         // The video is good, update the table.
-        $local_video = $videos[$video->getVideoId()];
-        $node = node_load($local_video->nid);
+        $entity = $videos[$video->getVideoId()];
+        $local_video = $entity->{$entity->field['field_name']}[FIELD_LANGUAGE_NONE][$entity->delta];
+
         // Update YouTube if applicable.
-        _video_upload_update_video_remote($connection, $video, $local_video, $node);
+        _video_upload_update_video_remote($connection, $video, $local_video, $entity);
 
         // The video is good, update the table.
-        _video_upload_update_video($local_video);
+        $entity->{$entity->field['field_name']}[FIELD_LANGUAGE_NONE][$entity->delta] = $local_video;
+        _video_upload_update_video($entity);
 
         // @TODO Notify the author, or expose this to trigger/action functionality.
       }
