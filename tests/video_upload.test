@@ -1,17 +1,17 @@
 <?php
 
-// $Id: video_upload.test,v 1.5.2.7 2009/09/04 20:51:16 jhedstrom Exp $
+// $Id: video_upload.test,v 1.11.2.4 2009/11/20 02:06:37 jhedstrom Exp $
 
 /**
  * @file
  * Unit tests for the Video Upload module
  */
 class videoUploadYouTubeTests extends DrupalWebTestCase {
-  function getInfo() {
+  public static function getInfo() {
     return array(
-      'name' => t('Authentication'),
-      'description' => t('Makes an authentication request to YouTube'),
-      'group' => t('Video Upload'),
+      'name' => 'Authentication',
+      'description' => 'Makes an authentication request to YouTube',
+      'group' => 'Video Upload',
     );
   }
 
@@ -225,7 +225,7 @@ class videoUploadYouTubeTests extends DrupalWebTestCase {
     $this->drupalPost('node/add/' . $this->video_type, $edit, t('Save'));
     $this->assertText(t('Video is being processed.'), t('Video successfully uploaded to Drupal.'));
     global $base_path;
-    $this->assertRaw('<img alt="' . t('Video processing') . '" width="425" height="355" src="' . $base_path . drupal_get_path('module', 'video_upload') . '/images/video.png" title="' . t('Video processing') . '"/>', t('Found video processing image on new node.'));
+    $this->assertRaw(drupal_get_path('module', 'video_upload') . '/images/video.png" title="' . t('Video processing') . '"/>', t('Found video processing image on new node.'));
     file_put_contents('/tmp/video-view.html', $this->content);
 
     // Check that the node exists in the database.

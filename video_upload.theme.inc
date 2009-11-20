@@ -1,6 +1,6 @@
 <?php
 
-// $Id: video_upload.theme.inc,v 1.5.2.8 2009/09/04 20:51:16 jhedstrom Exp $
+// $Id: video_upload.theme.inc,v 1.13.2.4 2009/11/20 02:06:37 jhedstrom Exp $
 
 /**
  * @file video_upload.theme.inc
@@ -277,20 +277,19 @@ function theme_video_upload_missing_image($variables) {
   $height = $variables['height'];
   $attributes = $variables['attributes'];
 
-  global $base_path;
   $file = $style == 'full' ? 'video.png' : 'video-thumbnail.png';
-  $image = $base_path . drupal_get_path('module', 'video_upload') . '/images/' . $file;
+  $image = drupal_get_path('module', 'video_upload') . '/images/' . $file;
 
   $defaults = array(
-    'alt' => t('Video'),
     'width' => $width,
     'height' => $height,
-    'src' => $image,
   );
 
   $attributes = array_merge($defaults, $attributes);
-  return '<img' . drupal_attributes($attributes) . '/>';
-
+  $alt = isset($attributes['alt']) ? $attributes['alt'] : t('Video');
+  $title = isset($attributes['title']) ? $attributes['title'] : '';
+  $output = theme('image', $image, $alt, $title, $attributes, FALSE);  
+  return $output;
 }
 
 /**
