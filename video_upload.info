@@ -1,4 +1,4 @@
-; $Id: video_upload.info,v 1.5 2008/10/10 19:02:57 jhedstrom Exp $
+; $Id: video_upload.info,v 1.6.2.4 2009/11/20 02:06:37 jhedstrom Exp $
 name = Video Upload Field
 description = Upload video to YouTube
 core = 7.x
@@ -9,3 +9,4 @@ files[] = video_upload.field.inc
 files[] = video_upload.install
 files[] = video_upload.widget.inc
 files[] = video_upload.admin.inc
+files[] = tests/video_upload.test
